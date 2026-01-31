@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./tf-gce
+        working-directory: tf-gce
 
     steps:
     - name: Checkout
