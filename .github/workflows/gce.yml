@@ -3,7 +3,7 @@ name: Terraform GCE Deploy
 on:
   push:
     branches:
-      - main
+      - feature/suresh
 
 permissions:
   contents: read
