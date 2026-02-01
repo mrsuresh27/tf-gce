@@ -1,60 +1,51 @@
-name: 'Terraform GCE Deploy'
+name: Terraform GCE Deploy
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'tf-gce/**'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'tf-gce/**'
-  workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
-
-env:
-  WORKLOAD_IDENTITY_PROVIDER: 'projects/629423970153/locations/global/workloadIdentityPools/gce-wif/providers/github'
-  SERVICE_ACCOUNT: 'sa-gce@hip-runner-477914-h3.iam.gserviceaccount.com'
+  id-token: write   # REQUIRED for Workload Identity Federation
 
 jobs:
   terraform:
-    name: 'Terraform'
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: tf-gce
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - id: 'auth'
-      name: 'Authenticate to Google Cloud'
-      uses: 'google-github-actions/auth@v2'
-      with:
-        workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
-        service_account: ${{ env.SERVICE_ACCOUNT }}
+      # 🔐 Authenticate to GCP using WIF (OIDC)
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/629423970153/locations/global/workloadIdentityPools/gce-wif/providers/gce-wif
+          service_account: sa-gce@hip-runner-477914-h3.iam.gserviceaccount.com
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      # ☁️ Install gcloud (recommended)
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-    - name: Terraform Format
-      run: terraform fmt -check
+      # 📦 Install Terraform
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
 
-    - name: Terraform Init
-      run: terraform init
+      # 🔍 Terraform Init
+      - name: Terraform Init
+        run: terraform init
 
-    - name: Terraform Validate
-      run: terraform validate
+      # 📋 Terraform Validate
+      - name: Terraform Validate
+        run: terraform validate
 
-    - name: Terraform Plan
-      run: terraform plan -var="project_id=hip-runner-477914-h3" -input=false
+      # 🧪 Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan
 
-    - name: Terraform Apply
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: terraform apply -auto-approve -var="project_id=hip-runner-477914-h3" -input=false
+      # 🚀 Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
